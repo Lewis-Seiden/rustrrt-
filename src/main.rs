@@ -10,8 +10,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let goal = Goal::new(9.0, 9.0, 0.1);
     let mut end = None;
     let mut tree = Tree::new();
-    tree.add_obs(Obstacle::new(3.0, 3.0, 5.0, 3.0));
+    for _ in 0..2 {
+        let (x, y) = (rng.gen::<f32>() * 9.0 + 0.25, rng.gen::<f32>() * 9.0 + 0.25);
+        let (w, h) = (rng.gen::<f32>() * 5.0, rng.gen::<f32>() * 5.0);
+        tree.add_obs(Obstacle::new(x - w / 2.0, y - h / 2.0, w, h));
+    }
     tree.add(0.0, 0.0);
+    let mut iters = 0;
     loop {
         let new = (rng.gen::<f32>() * 10.0, rng.gen::<f32>() * 10.0);
         let node = tree.add(new.0, new.1);
@@ -19,10 +24,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             end = Some(node); 
             break;
         }
+
+        if iters > 10000 {
+            break;
+        }
+
+        iters += 1;
     }
     let path = tree.ancestry(end.unwrap_or(0));
 
-    println!("solve time {:?}", now.elapsed().unwrap());
+    println!("solve time {:?} in {} iters", now.elapsed().unwrap(), iters);
 
     let root = BitMapBackend::new("image.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -75,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         path.iter().as_slice().windows(2).map(
             |ps| {
                 let (a, b) = (ps[0], ps[1]);
-                PathElement::new([(tree.nodes[a].x, tree.nodes[a].y), (tree.nodes[b].x, tree.nodes[b].y)], &GREEN)
+                PathElement::new([(tree.nodes[a].x, tree.nodes[a].y), (tree.nodes[b].x, tree.nodes[b].y)], GREEN.stroke_width(2))
             }
         )
     ).unwrap();

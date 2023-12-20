@@ -3,19 +3,19 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Node {
     pub parent: Option<usize>,
-    pub dist: f32,
+    pub cost: f32,
     pub x: f32,
     pub y: f32,
 }
 
 impl Node {
-    pub fn new(parent: Option<usize>, x: f32, y: f32, dist: f32) -> Self {
-        Self { parent, dist, x, y }
+    pub fn new(parent: Option<usize>, x: f32, y: f32, total_dist: f32) -> Self {
+        Self { parent, cost: total_dist, x, y }
     }
 
     pub fn depth(&self, tree: &Tree) -> f32 {
         match self.parent {
-            Some(p) => tree.nodes.get(p).unwrap().depth(tree) + self.dist,
+            Some(p) => tree.nodes.get(p).unwrap().depth(tree) + self.cost,
             None => 0.0,
         }
     }
@@ -40,13 +40,32 @@ impl Tree {
         Self { nodes: vec![], obstacles: vec![] }
     }
 
-    pub fn min(&self, x: f32, y: f32) -> Option<usize> {
+    pub fn min_dist(&self, x: f32, y: f32) -> Option<usize> {
         let mut min: Option<&Node> = None;
         let mut min_dist = f32::INFINITY;
         for node in &self.nodes {
             if node.dist(x, y) < min_dist {
                 min = Some(node);
                 min_dist = node.dist(x, y);
+            }
+            // println!("node {:?} min {:?} dist {:?}", node, min, min_dist);
+        }
+        match min {
+            Some(n) => {
+                // println!("min {:?} d {:?}", min, n.dist(x, y));
+                self.nodes.iter().position(|e| e == n)
+            },
+            None => None
+        }
+    }
+
+    pub fn min_cost(&self, node: usize) -> Option<usize> {
+        let mut min: Option<&Node> = None;
+        let mut min_cost = f32::INFINITY;
+        for other in &self.nodes {
+            if other.cost < min_cost {
+                min = Some(other);
+                min_cost = other.cost;
             }
             // println!("node {:?} min {:?} dist {:?}", node, min, min_dist);
         }
@@ -96,16 +115,30 @@ impl Tree {
     }
 
     pub fn add(&mut self, x: f32, y: f32) -> usize {
-        let min = self.min(x, y);
+        let min = self.min_dist(x, y);
         // println!("min {:?}", min);
         let (par_x, par_y) = match min {
             Some(e)  => (self.nodes.get(e).unwrap().x, self.nodes.get(e).unwrap().y),
             None => (x, y)
         };
+        let par_cost = match min {
+            Some(e) => self.nodes.get(e).unwrap().cost,
+            None => 0.0
+        };
         let (c_x, c_y) = Self::constrain((x, y), (par_x, par_y));
         let (i_x, i_y) = Self::intersect((par_x, par_y), (c_x, c_y), &self.obstacles);
         // println!("og {:?} circle {:?} obs {:?}", (x, y), (c_x, c_y), (i_x, i_y));
-        self.nodes.push(Node::new(min, i_x, i_y, dist(i_x, i_y, par_x, par_y)));
+        let new_par = self.min_dist(i_x, i_y);
+        let (new_par_x, new_par_y) = match new_par {
+            Some(e)  => (self.nodes.get(e).unwrap().x, self.nodes.get(e).unwrap().y),
+            None => (x, y)
+        };
+        let new_par_cost = match new_par {
+            Some(e) => self.nodes.get(e).unwrap().cost,
+            None => 0.0
+        };
+        self.nodes.push(Node::new(new_par, i_x, i_y, dist(i_x, i_y, new_par_x, new_par_y) + new_par_cost));
+        if min != self.min_dist(i_x, i_y) { println!("optimized")};
         self.nodes.len() - 1
     }
 
