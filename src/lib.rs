@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Node {
     pub parent: Option<usize>,
@@ -10,7 +8,12 @@ pub struct Node {
 
 impl Node {
     pub fn new(parent: Option<usize>, x: f32, y: f32, total_dist: f32) -> Self {
-        Self { parent, cost: total_dist, x, y }
+        Self {
+            parent,
+            cost: total_dist,
+            x,
+            y,
+        }
     }
 
     pub fn depth(&self, tree: &Tree) -> f32 {
@@ -38,7 +41,10 @@ pub struct Tree {
 const NEIGHBORHOOD: f32 = 1.0;
 impl Tree {
     pub fn new() -> Self {
-        Self { nodes: vec![], obstacles: vec![] }
+        Self {
+            nodes: vec![],
+            obstacles: vec![],
+        }
     }
 
     pub fn min_dist(&self, x: f32, y: f32) -> Option<usize> {
@@ -55,8 +61,8 @@ impl Tree {
             Some(n) => {
                 // println!("min {:?} d {:?}", min, n.dist(x, y));
                 self.nodes.iter().position(|e| e == n)
-            },
-            None => None
+            }
+            None => None,
         }
     }
 
@@ -74,8 +80,8 @@ impl Tree {
             Some(n) => {
                 // println!("min {:?} d {:?}", min, n.dist(x, y));
                 self.nodes.iter().position(|e| e == n)
-            },
-            None => None
+            }
+            None => None,
         }
     }
 
@@ -119,19 +125,32 @@ impl Tree {
         let min = self.min_dist(x, y);
         // println!("min {:?}", min);
         let (par_x, par_y) = match min {
-            Some(e)  => (self.nodes.get(e).unwrap().x, self.nodes.get(e).unwrap().y),
-            None => (x, y)
+            Some(e) => (self.nodes.get(e).unwrap().x, self.nodes.get(e).unwrap().y),
+            None => (x, y),
         };
         let par_cost = match min {
             Some(e) => self.nodes.get(e).unwrap().cost,
-            None => 0.0
+            None => 0.0,
         };
         let (c_x, c_y) = Self::constrain((x, y), (par_x, par_y));
         let (i_x, i_y) = Self::intersect((par_x, par_y), (c_x, c_y), &self.obstacles);
         // println!("og {:?} circle {:?} obs {:?}", (x, y), (c_x, c_y), (i_x, i_y));
-        self.nodes.push(Node::new(min, i_x, i_y, dist(i_x, i_y, par_x, par_y) + par_cost));
+        self.nodes.push(Node::new(
+            min,
+            i_x,
+            i_y,
+            dist(i_x, i_y, par_x, par_y) + par_cost,
+        ));
         // if min != self.min_dist(i_x, i_y) { println!("optimized")};
-        let rewire_candidates: Vec<usize> = self.nodes.iter().enumerate().filter(|(_, n)| n.dist(self.nodes.last().unwrap().x, self.nodes.last().unwrap().y) < NEIGHBORHOOD).map(|(i, _)| i).collect();
+        let rewire_candidates: Vec<usize> = self
+            .nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, n)| {
+                n.dist(self.nodes.last().unwrap().x, self.nodes.last().unwrap().y) < NEIGHBORHOOD
+            })
+            .map(|(i, _)| i)
+            .collect();
         for candidate in rewire_candidates {
             // self.rewire(candidate);
         }
@@ -141,13 +160,24 @@ impl Tree {
 
     pub fn rewire(&mut self, node: usize) {
         let n = self.nodes[node];
-        if n.parent.is_none() {return};
-        let min = self.nodes.iter().enumerate().filter(|(i, _)| i != &node).filter(|(i, e)| e.dist(n.x, n.y) < NEIGHBORHOOD || i == &n.parent.unwrap()).min_by(|(_, a), (_, b)| {
-            // println!("a {:?} b {:?}", a, b);
-            (a.cost + a.dist(n.x, n.y)).total_cmp(&(b.cost + b.dist(n.x, n.y)))
-        });
+        if n.parent.is_none() {
+            return;
+        };
+        let min = self
+            .nodes
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i != &node)
+            .filter(|(i, e)| e.dist(n.x, n.y) < NEIGHBORHOOD || i == &n.parent.unwrap())
+            .min_by(|(_, a), (_, b)| {
+                // println!("a {:?} b {:?}", a, b);
+                (a.cost + a.dist(n.x, n.y)).total_cmp(&(b.cost + b.dist(n.x, n.y)))
+            });
         // println!("{:?}", min);
-        self.nodes[node].parent = match min { Some(m) => Some(m.0), None => self.nodes[node].parent};
+        self.nodes[node].parent = match min {
+            Some(m) => Some(m.0),
+            None => self.nodes[node].parent,
+        };
     }
 
     pub fn add_obs(&mut self, obs: Obstacle) {
@@ -160,8 +190,8 @@ impl Tree {
                 let mut res = vec![node];
                 res.append(&mut self.ancestry(p));
                 res
-            },
-            None => vec![node]
+            }
+            None => vec![node],
         }
     }
 }
@@ -188,10 +218,19 @@ impl Obstacle {
 pub struct Goal {
     pub x: f32,
     pub y: f32,
-    pub r: f32
+    pub r: f32,
 }
 
 impl Goal {
+    pub fn new(x: f32, y: f32, r: f32) -> Self {
+        Self { x, y, r }
+    }
+
+    pub fn sample(&self, x: f32, y: f32) -> bool {
+        dist(x, y, self.x, self.y) <= self.r
+    }
+}
+l Goal {
     pub fn new(x: f32, y: f32, r: f32) -> Self {
         Self { x, y, r }
     }
