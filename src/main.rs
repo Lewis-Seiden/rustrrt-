@@ -18,20 +18,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tree.add(0.0, 0.0);
     let mut iters = 0;
     loop {
-        let new = (rng.gen::<f32>() * 10.0, rng.gen::<f32>() * 10.0);
+        let new = if iters % 10 == 0 {(goal.x, goal.y)} else {(rng.gen::<f32>() * 10.0, rng.gen::<f32>() * 10.0)};
         let node = tree.add(new.0, new.1);
         if goal.sample(tree.nodes[node].x, tree.nodes[node].y) {
             end = Some(node); 
-            break;
+            // break;
         }
 
-        if iters > 10000 {
+        if iters > 5000 {
             break;
         }
 
         iters += 1;
+        println!("iter {}", iters);
     }
-    let path = tree.ancestry(end.unwrap_or(0));
+    let path = if end.is_some() { tree.ancestry(end.unwrap_or(0)) } else { vec![] };
 
     println!("solve time {:?} in {} iters", now.elapsed().unwrap(), iters);
 
@@ -60,10 +61,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ).unwrap();
 
     chart.draw_series(
-        tree.nodes.iter().map(|n| Circle::new((n.x, n.y), 2, &RED))
-    ).unwrap();
-
-    chart.draw_series(
         tree.nodes.iter().map(|n| {
             return match n.parent {
                 Some(m) => PathElement::new([(n.x, n.y), (tree.nodes[m].x, tree.nodes[m].y)], &BLUE),
@@ -71,7 +68,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
         })
     ).unwrap();
-
+    
+    chart.draw_series(
+        tree.nodes.iter().map(|n| Circle::new((n.x, n.y), 2, &RED))
+    ).unwrap();
 
     chart.draw_series(
         tree.obstacles.iter().map(|o| {
