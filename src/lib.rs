@@ -23,7 +23,7 @@ impl Node {
         }
     }
 
-    fn dist(&self, x: f32, y: f32) -> f32 {
+    pub fn dist(&self, x: f32, y: f32) -> f32 {
         dist(self.x, self.y, x, y)
     }
 }
@@ -38,7 +38,7 @@ pub struct Tree {
     pub obstacles: Vec<Obstacle>,
 }
 
-const NEIGHBORHOOD: f32 = 1.0;
+const NEIGHBORHOOD: f32 = 0.5;
 impl Tree {
     pub fn new() -> Self {
         Self {
@@ -86,7 +86,7 @@ impl Tree {
     }
 
     fn intersect(s: (f32, f32), e: (f32, f32), obs: &Vec<Obstacle>) -> (f32, f32) {
-        const RES: usize = 5; // steps per node
+        const RES: usize = 10; // steps per node
         let mut n = s;
         // println!("1 = {}", (dist(s.0, s.1, e.0, e.1) / RES as f32));
         // println!("s {:?} e {:?}", s, e);
@@ -152,7 +152,7 @@ impl Tree {
             .map(|(i, _)| i)
             .collect();
         for candidate in rewire_candidates {
-            // self.rewire(candidate);
+            self.rewire(candidate);
         }
         self.rewire(self.nodes.len() - 1);
         self.nodes.len() - 1
@@ -163,12 +163,13 @@ impl Tree {
         if n.parent.is_none() {
             return;
         };
-        let min = self
-            .nodes
+        let min = &(self
+            .nodes)
             .iter()
             .enumerate()
             .filter(|(i, _)| i != &node)
             .filter(|(i, e)| e.dist(n.x, n.y) < NEIGHBORHOOD || i == &n.parent.unwrap())
+            .filter(|(_, e)| Self::intersect((n.x, n.y), (e.x, e.y), &self.obstacles) == (e.x, e.y))
             .min_by(|(_, a), (_, b)| {
                 // println!("a {:?} b {:?}", a, b);
                 (a.cost + a.dist(n.x, n.y)).total_cmp(&(b.cost + b.dist(n.x, n.y)))
@@ -215,6 +216,7 @@ impl Obstacle {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Goal {
     pub x: f32,
     pub y: f32,
@@ -222,15 +224,6 @@ pub struct Goal {
 }
 
 impl Goal {
-    pub fn new(x: f32, y: f32, r: f32) -> Self {
-        Self { x, y, r }
-    }
-
-    pub fn sample(&self, x: f32, y: f32) -> bool {
-        dist(x, y, self.x, self.y) <= self.r
-    }
-}
-l Goal {
     pub fn new(x: f32, y: f32, r: f32) -> Self {
         Self { x, y, r }
     }
